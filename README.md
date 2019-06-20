@@ -1,4 +1,4 @@
-
+[![Build Status](https://travis-ci.com/milliechapman/treesincroplands.svg?token=DT1gCAtvxqVkbs12U7nX&branch=master)](https://travis-ci.com/milliechapman/treesincroplands)
 
 ## Author:
 
