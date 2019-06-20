@@ -41,7 +41,7 @@ pasture_hist <- cSplit(pasture_hist, "b1", sep = ",", direction = "long")
 pasture_hist <- cSplit(pasture_hist, "b1", sep = "=", direction = "wide")
 
 ######## country summary #############
-crop_country <- crop_hist %>%  
+crop_country <- crop_hist %>% drop_na(BIOME) %>%
   group_by(NAME_EN, b1_1) %>%
   summarise(b1_2 = sum(b1_2)) %>%
   mutate(b1_2 = as.numeric(b1_2),
@@ -51,9 +51,7 @@ crop_country <- crop_hist %>%
             carbon = sum(biomass)/2/10^6,
             density = carbon/area)
 
-summary_country <- pasture_hist %>% mutate_if(is.factor,
-                                              fct_explicit_na,
-                                              na_level = "to_impute") %>%
+summary_country <- pasture_hist %>% drop_na(BIOME) %>%
   group_by(NAME_EN, b1_1) %>% 
   summarise(b1_2 = sum(b1_2)) %>%
   mutate(b1_2 = as.numeric(b1_2),
@@ -139,7 +137,7 @@ summary_all <- pasture_hist %>%
          total_area = area_pasture + area )
 
 ####### export ###############
-write.csv(summary_biome, "summary_biome.csv")
-write.csv(summary_country, "summary_country.csv")
-write.csv(summary_economy, "summary_economy.csv")
-write.csv(summary_all, "summary_all.csv")
+write.csv(summary_biome, "output/summary_biome.csv")
+write.csv(summary_country, "output/summary_country.csv")
+write.csv(summary_economy, "output/summary_economy.csv")
+write.csv(summary_all, "output/summary_all.csv")
