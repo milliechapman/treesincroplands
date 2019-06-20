@@ -1,0 +1,6 @@
+---
+title: "TIC_potential"
+author: "Millie Chapman"
+date: "6/20/2019"
+output: html_document
+---
