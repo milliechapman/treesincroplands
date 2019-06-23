@@ -1,4 +1,5 @@
-## Clean output data from GEE
+## Clean output data from GEE and make summary tables 
+
 library(tidyverse)
 library(ggplot2)
 library(splitstackshape)

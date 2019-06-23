@@ -8,9 +8,11 @@
 While agroforestry is promoted as a promising climate mitigation opportunity, available estimates of the carbon sequestration potential are based on coarse assessments of both cropland extent and associated aboveground carbon density. Here we combine 30-meter resolution global maps of aboveground woody biomass, tree cover, and cropland extent, as well as a 1 km map of global pasture land, to estimate the potential contribution of agroforestry to climate change mitigation. We also update existing estimates of standing above ground biomass in croplands. 
 
 ## Analyses and Data
-All spatial analysis was done in Google Earth Engine. Scripts are available upon request. 
+All spatial analysis was done in Google Earth Engine and described in `manuscript\trees_in_croplands.Rmd`. 
 
-Data used here are direct outputs from GEE exports.
+Code available: https://code.earthengine.google.com/0c9dbb9d921e1c219874ffceb912b796 (run time ~11hrs; access to layers may need to be requested)
+
+`data\cropbio_density_hist.csv` and `data\pasturebio_density_hist.csv` used in `scripts\data_clean.R` are direct outputs from GEE exports.
 
 ### Common files
 

@@ -1,3 +1,5 @@
+## Figure 2,3 and 4 in manuscript
+
 library(tidyverse)
 library(ggplot2)
 
@@ -65,7 +67,6 @@ dev.off()
 ## figure 4: top 30 countries
 
 countries<-read_csv("output/potential.csv") %>%
-  recode(NAME_EN, "People's Republic of China" = "China")
   group_by(NAME_EN, CP) %>% drop_na() %>%
   summarise(potential = sum(carbon_potential)*0.01/10^6) %>%
   spread(key = CP, value = potential) %>% 
@@ -73,19 +74,21 @@ countries<-read_csv("output/potential.csv") %>%
   gather(CP,value,pasture:crop) 
 
 
-countries <- countries %>%  arrange(-total) %>%
+countries1 <- countries %>%  arrange(-total)
 
-countries<- countries[1:60,]
+countries<- countries1[1:60,]
 
-tiff("figures/potential_country.tiff", width = 8, height = 6, units = 'in', res = 300)
+tiff("figures/potential_country.tiff", width = 7, height = 8, units = 'in', res = 300)
 countries %>% ggplot(aes(reorder(NAME_EN, total), value))+
   geom_col(aes(fill = CP))+
-  labs(x = "Country",y = "Carbon Sequestration Potential (PgC)", sep = "")+
+  labs(x = "Country",y = "Carbon Sequestration Potential (Tg C)", sep = "")+
   theme(legend.title = element_blank()) +
   scale_fill_manual(values = c( "darkolivegreen3","darkolivegreen4")) +
   theme(legend.position =  c(0.8, 0.2)) +coord_flip()
 dev.off()
 
+sum(na.omit(countries1$value))
+sum(na.omit(countries$value))/sum(na.omit(countries1$value))
 
 
 
