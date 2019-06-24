@@ -11,8 +11,8 @@ econ <- read.csv("output/summary_all.csv") %>%
   mutate(ECONOMY = factor(ifelse(ECONOMY == "High income", "High income \n (n=274)", 
                                  ifelse(ECONOMY == "Low income", "Low income \n (n=194)",
                                         ifelse(ECONOMY =="Lower middle income", 
-                                               "Lower middle income \n (n =288)",
-                                               "Upper middle income \n (n=340)"
+                                               "Lower middle \n income \n (n =288)",
+                                               "Upper middle \n income \n (n=340)"
                                                ))))) %>%
   gather(CP,value,pasture:crop) %>%
   group_by(CP, ECONOMY) %>% 
@@ -21,7 +21,7 @@ econ <- read.csv("output/summary_all.csv") %>%
             n_cb = n(),  # calculates the sample size per group
             se = sd(value)/sqrt(n()))
   
-tiff("figures/tic_incomegroup.tif", units = "in", width= 6 , height = 4, res=300)
+tiff("figures/tic_incomegroup.tif", units = "in", width= 4 , height = 4, res=300)
 ggplot(econ, aes(x=reorder(ECONOMY, -mean_density), 
                y=mean_density, 
                color=CP)) + 
@@ -40,6 +40,7 @@ ggplot(econ, aes(x=reorder(ECONOMY, -mean_density),
     axis.title.x = element_text(size=11,color='black')
   )
 dev.off()
+
 
 ## figure 3: potential
 
@@ -81,14 +82,12 @@ countries<- countries1[1:60,]
 tiff("figures/potential_country.tiff", width = 7, height = 8, units = 'in', res = 300)
 countries %>% ggplot(aes(reorder(NAME_EN, total), value))+
   geom_col(aes(fill = CP))+
-  labs(x = "Country",y = "Carbon Sequestration Potential (Tg C)", sep = "")+
+  labs(x = "", y = "Carbon Sequestration Potential (Tg C)", sep = "")+
   theme(legend.title = element_blank()) +
   scale_fill_manual(values = c( "darkolivegreen3","darkolivegreen4")) +
   theme(legend.position =  c(0.8, 0.2)) +coord_flip()
 dev.off()
 
-sum(na.omit(countries1$value))
-sum(na.omit(countries$value))/sum(na.omit(countries1$value))
 
 
 

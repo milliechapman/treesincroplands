@@ -97,11 +97,11 @@ crop_econ <- crop_hist %>% drop_na(ECONOMY) %>%
   mutate(b1_2 = as.numeric(b1_2),
          biomass = b1_1*b1_2*.09) %>%
   group_by(ECONOMY) %>% drop_na() %>%
-  summarise(area = sum(b1_2)*.09/10^6,
-            carbon = sum(biomass)/2/10^6,
-            density = carbon_crop/area_crop)
+  summarise(area_crop = sum(b1_2)*.09/10^6,
+            carbon_crop = sum(biomass)/2/10^6,
+            density_crop = carbon_crop/area_crop)
 
-summary_econ <- pasture_hist %>% drop_na(ECONOMY) %>%
+summary_economy <- pasture_hist %>% drop_na(ECONOMY) %>%
   group_by(ECONOMY, b1_1)  %>%
   summarise(b1_2 = sum(b1_2)) %>%
   mutate(b1_2 = as.numeric(b1_2),

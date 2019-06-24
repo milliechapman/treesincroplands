@@ -63,7 +63,7 @@ quantiles = function(x,probs) {
 
 for (i in 1:length(listc)) {
   listc[[i]]$b1_1<-as.numeric(listc[[i]]$b1_1)
-  z <- subset(listc[[i]], b1_1 > 5 )
+  z <- subset(listc[[i]], b1_1 > 10 )
   a<-quantiles(z, probs = c(0.1,0.2,0.5))
   listc[[i]]$p50<-a$values[3]
   listc[[i]]$d50<-ifelse(listc[[i]]$p50-listc[[i]]$b1_1>0,listc[[i]]$p50-listc[[i]]$b1_1,0)
@@ -83,7 +83,7 @@ sum(na.omit(crops_potential$carbon_potential))/10^9
 
 for (i in 1:length(listp)) {
   listp[[i]]$b1_1<-as.numeric(listp[[i]]$b1_1)
-  z <- subset(listp[[i]], b1_1 > 5 )
+  z <- subset(listp[[i]], b1_1 > 10 )
   a<-quantiles(z, probs = c(0.1,0.2,0.5))
   listp[[i]]$p50<-a$values[3]
   listp[[i]]$d50<-ifelse(listp[[i]]$p50-listp[[i]]$b1_1>0,listp[[i]]$p50-listp[[i]]$b1_1,0)
