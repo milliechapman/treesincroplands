@@ -1,8 +1,13 @@
 [![Build Status](https://travis-ci.com/milliechapman/treesincroplands.svg?token=DT1gCAtvxqVkbs12U7nX&branch=master)](https://travis-ci.com/milliechapman/treesincroplands)
 
-## Author:
+## Authors:
 
 - Millie Chapman, @milliechapman
+- Wayne Walker
+- Susan Cook-Patton
+- Mary Farina
+- Bronson Griscom
+- Alessandro Baccini
 
 ## Description:
 While agroforestry is promoted as a promising climate mitigation opportunity, available estimates of the carbon sequestration potential are based on coarse assessments of both cropland extent and associated aboveground carbon density. Here we combine 30-meter resolution global maps of aboveground woody biomass, tree cover, and cropland extent, as well as a 1 km map of global pasture land, to estimate the potential contribution of agroforestry to climate change mitigation. We also update existing estimates of standing above ground biomass in croplands. 
