@@ -16,7 +16,7 @@ While agroforestry is promoted as a promising climate mitigation opportunity, av
 ## Analyses and Data
 All spatial analysis was done in Google Earth Engine and described in `manuscript\trees_in_croplands.Rmd`. 
 
-Code available: https://code.earthengine.google.com/0c9dbb9d921e1c219874ffceb912b796 (run time ~21hrs; access to layers may need to be requested)
+Code available: https://code.earthengine.google.com/0c9dbb9d921e1c219874ffceb912b796 (run time ~21hrs but depends on GEE computational allocation to task; access to layers may need to be requested)
 
 `data\cropbio_density_hist.csv` and `data\pasturebio_density_hist.csv` used in `scripts\data_clean.R` are direct outputs from GEE.
 
