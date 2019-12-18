@@ -7,6 +7,7 @@
 - Susan Cook-Patton
 - Mary Farina
 - Bronson Griscom
+- Peter Ellis
 - Alessandro Baccini
 
 ## Description:
