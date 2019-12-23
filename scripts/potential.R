@@ -8,12 +8,18 @@ rm(list = ls())
 ##variables
 vars<-c("NAME_EN", "b1", "BIOME", "ECONOMY", "POP_EST", "INCOME_GRP", "ISO_A3")
 biomes<-read_csv("data/Biome_names.csv")
+
+IUCN_agroforestry  <- read_csv("data/INDC_CCAFS.csv")
+
 class<- read.csv("data/gdp_classification.csv") %>%
   mutate(ISO_A3 = Country.Code) %>%
-  select(ISO_A3, IncomeGroup)
+  select(ISO_A3, IncomeGroup) %>%
+  mutate(ECONOMY = IncomeGroup) %>%
+  left_join(IUCN_agroforestry)
+
 
 ##load crop
-crop_hist<- read.csv("data/cropbio_density_hist.csv") %>%
+crop_hist<- read.csv("data/cropbio_density_hist_new.csv") %>%
   select(vars) %>%
   full_join(biomes) %>%
   mutate(BIOME = Name) %>% 
@@ -27,7 +33,7 @@ crop_hist <- cSplit(crop_hist, "b1", sep = ",", direction = "long")
 crop_hist <- cSplit(crop_hist, "b1", sep = "=", direction = "wide")
 
 ##load pasture
-pasture_hist<- read.csv("data/pasturebio_density_hist.csv") %>%
+pasture_hist<- read.csv("data/pasturebio_density_hist_new.csv") %>%
   select(vars)  %>% 
   full_join(biomes) %>%
   mutate(BIOME = Name) %>% 
@@ -41,16 +47,16 @@ pasture_hist <- cSplit(pasture_hist, "b1", sep = ",", direction = "long")
 pasture_hist <- cSplit(pasture_hist, "b1", sep = "=", direction = "wide")
 
 crop_all <- crop_hist %>%
-  group_by(NAME_EN, BIOME, b1_1) %>% drop_na(BIOME) %>%
+  group_by(NAME_EN, BIOME, ISO_A3, mitigation, b1_1) %>% drop_na(BIOME) %>%
   summarise(b1_2 = sum(b1_2)) %>%
   mutate(b1_2 = as.numeric(b1_2),
-         biomass = b1_1*b1_2*.09)
+         biomass = b1_1*b1_2*.078)
 
 pasture_all <- pasture_hist %>%
-  group_by(NAME_EN,BIOME, b1_1) %>% drop_na(BIOME, NAME_EN) %>%
+  group_by(NAME_EN,BIOME,ISO_A3, mitigation, b1_1) %>% drop_na(BIOME, NAME_EN) %>%
   summarise(b1_2 = sum(b1_2)) %>%
   mutate(b1_2 = as.numeric(b1_2),
-         biomass = b1_1*b1_2*.09)
+         biomass = b1_1*b1_2*.078)
 
 listc<-split(crop_all, paste(crop_all$NAME_EN,crop_all$BIOME))
 
@@ -67,14 +73,14 @@ for (i in 1:length(listc)) {
   a<-quantiles(z, probs = c(0.1,0.2,0.5))
   listc[[i]]$p50<-a$values[3]
   listc[[i]]$d50<-ifelse(listc[[i]]$p50-listc[[i]]$b1_1>0,listc[[i]]$p50-listc[[i]]$b1_1,0)
-  listc[[i]]$a50<-ifelse(listc[[i]]$d50>0,listc[[i]]$b1_2*0.09,0)
+  listc[[i]]$a50<-ifelse(listc[[i]]$d50>0,listc[[i]]$b1_2*0.078,0)
   listc[[i]]$b50<-listc[[i]]$d50*listc[[i]]$a50
 }
 
 crops_potential <- do.call("rbind", listc) 
 
 crops_potential <- crops_potential %>%
-  group_by(NAME_EN, BIOME) %>%
+  group_by(NAME_EN, BIOME, ISO_A3, mitigation) %>%
   summarise(carbon_potential = sum(b50)/2,
             potential_value = mean(p50)) %>%
   mutate(CP = "crop")
@@ -87,18 +93,24 @@ for (i in 1:length(listp)) {
   a<-quantiles(z, probs = c(0.1,0.2,0.5))
   listp[[i]]$p50<-a$values[3]
   listp[[i]]$d50<-ifelse(listp[[i]]$p50-listp[[i]]$b1_1>0,listp[[i]]$p50-listp[[i]]$b1_1,0)
-  listp[[i]]$a50<-ifelse(listp[[i]]$d50>0,listp[[i]]$b1_2*0.09,0)
+  listp[[i]]$a50<-ifelse(listp[[i]]$d50>0,listp[[i]]$b1_2*0.078,0)
   listp[[i]]$b50<-listp[[i]]$d50*listp[[i]]$a50
 }
 
 pastures_potential <- do.call("rbind", listp) 
 
 pastures_potential <- pastures_potential %>%
-  group_by(NAME_EN, BIOME) %>%
+  group_by(NAME_EN, BIOME, ISO_A3, mitigation) %>%
   summarise(carbon_potential = sum(b50)/2,
             potential_value = mean(p50)) %>%
   mutate(CP = "pasture")
 
 potential<- rbind(pastures_potential, crops_potential)
 
+
 write.csv(potential, "output/potential.csv")
+
+poten<-read_csv("output/potential.csv")%>%
+  group_by(CP) %>% drop_na() %>%
+  summarize(carbon = sum(carbon_potential)/10^6)
+sum(poten$carbon)
