@@ -1,11 +1,10 @@
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
 
 <head>
 
 <meta charset="utf-8" />
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="generator" content="pandoc" />
 <meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
@@ -332,6 +331,7 @@ summary {
   border: none;
   display: inline-block;
   border-radius: 4px;
+  background-color: transparent;
 }
 
 .tabset-dropdown > .nav-tabs.nav-tabs-open > li {
@@ -371,21 +371,21 @@ summary {
 
 
 <pre class="r"><code>library(tidyverse)</code></pre>
-<pre><code>## ── Attaching packages ──────────────────────────────────────────────────────────────────────────────────────────────────────── tidyverse 1.3.0 ──</code></pre>
-<pre><code>## ✔ ggplot2 3.2.1     ✔ purrr   0.3.3
-## ✔ tibble  2.1.3     ✔ dplyr   0.8.3
-## ✔ tidyr   1.0.0     ✔ stringr 1.4.0
-## ✔ readr   1.3.1     ✔ forcats 0.4.0</code></pre>
-<pre><code>## ── Conflicts ─────────────────────────────────────────────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
-## ✖ dplyr::filter() masks stats::filter()
-## ✖ dplyr::lag()    masks stats::lag()</code></pre>
+<pre><code>## ── Attaching packages ─────────────────────────────────────────────────────────────────────────── tidyverse 1.3.0 ──</code></pre>
+<pre><code>## ✓ ggplot2 3.2.1.9000     ✓ purrr   0.3.3     
+## ✓ tibble  2.1.3          ✓ dplyr   0.8.3     
+## ✓ tidyr   1.0.0          ✓ stringr 1.4.0     
+## ✓ readr   1.3.1          ✓ forcats 0.4.0</code></pre>
+<pre><code>## ── Conflicts ────────────────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
+## x dplyr::filter() masks stats::filter()
+## x dplyr::lag()    masks stats::lag()</code></pre>
 <pre class="r"><code>library(ggplot2)
 library(splitstackshape)
 library(stringr)
 rm(list = ls())</code></pre>
 <pre class="r"><code>##variables
 #vars&lt;-c(&quot;NAME_EN&quot;, &quot;b1&quot;, &quot;BIOME&quot;, &quot;ECONOMY&quot;, &quot;POP_EST&quot;, &quot;INCOME_GRP&quot;, &quot;ISO_A3&quot;)
-vars&lt;-c(&quot;NAME_EN&quot;, &quot;b1&quot;, &quot;BIOME_NAME&quot;, &quot;ECONOMY&quot;, &quot;POP_EST&quot;, &quot;INCOME_GRP&quot;, &quot;ISO_A3&quot;)
+vars&lt;-c(&quot;NAME_EN&quot;, &quot;min&quot;, &quot;BIOME_NAME&quot;, &quot;ECONOMY&quot;, &quot;POP_EST&quot;, &quot;INCOME_GRP&quot;, &quot;ISO_A3&quot;)
 biomes&lt;-read_csv(&quot;../data/Biome_names.csv&quot;)</code></pre>
 <pre><code>## Parsed with column specification:
 ## cols(
@@ -414,8 +414,10 @@ biomes&lt;-read_csv(&quot;../data/Biome_names.csv&quot;)</code></pre>
 <pre><code>## Warning: Column `ISO_A3` joining factor and character vector, coercing into
 ## character vector</code></pre>
 <pre class="r"><code>##load crop
-crop_hist&lt;- read.csv(&quot;../data/cropbio_density_hist_1217.csv&quot;) %&gt;%
-  select(vars) %&gt;%
+vars&lt;-c(&quot;NAME_EN&quot;, &quot;min&quot;, &quot;BIOME_NAME&quot;, &quot;ECONOMY&quot;, &quot;POP_EST&quot;, &quot;INCOME_GRP&quot;, &quot;ISO_A3&quot;)
+
+crop_hist&lt;- read.csv(&quot;../data/crop_hist_25.csv&quot;) %&gt;%
+  select(vars) %&gt;% mutate(b1 = min) %&gt;%
   left_join(class, by = &quot;ISO_A3&quot;) %&gt;%
   drop_na(&quot;ISO_A3&quot;)</code></pre>
 <pre><code>## Warning: Column `ISO_A3` joining factor and character vector, coercing into
@@ -426,8 +428,8 @@ crop_hist$b1&lt;- as.character(crop_hist$b1)
 crop_hist &lt;- cSplit(crop_hist, &quot;b1&quot;, sep = &quot;,&quot;, direction = &quot;long&quot;)
 crop_hist &lt;- cSplit(crop_hist, &quot;b1&quot;, sep = &quot;=&quot;, direction = &quot;wide&quot;)</code></pre>
 <pre class="r"><code>##load pasture
-pasture_hist&lt;- read.csv(&quot;../data/pasturebio_density_hist_1221.csv&quot;) %&gt;%
- select(vars)  %&gt;% 
+pasture_hist&lt;- read.csv(&quot;../data/pasture_hist_25.csv&quot;) %&gt;%
+ select(vars)  %&gt;% mutate(b1 = min) %&gt;%
  left_join(class) %&gt;%
  drop_na(&quot;ISO_A3&quot;)</code></pre>
 <pre><code>## Joining, by = c(&quot;ECONOMY&quot;, &quot;ISO_A3&quot;)</code></pre>
@@ -443,14 +445,19 @@ pasture_hist &lt;- cSplit(pasture_hist, &quot;b1&quot;, sep = &quot;=&quot;, dir
 <pre class="r"><code>crop_all &lt;- crop_hist %&gt;%
   group_by(BIOME_NAME, ISO_A3, b1_1) %&gt;% drop_na(BIOME_NAME) %&gt;% drop_na(ISO_A3) %&gt;%
   summarise(b1_2 = sum(b1_2)) %&gt;%
-  mutate(b1_2 = as.numeric(b1_2),
+  mutate(b1_1 = b1_1-1,
+         b1_2 = as.numeric(b1_2),
          biomass = b1_1*b1_2*.09,
          BIOME = as.numeric(BIOME_NAME))
-
-pasture_all &lt;- pasture_hist %&gt;%
+sum(crop_all$biomass)/10^9</code></pre>
+<pre><code>## [1] 6.902678</code></pre>
+<pre class="r"><code>sum(crop_all$b1_2)*.09</code></pre>
+<pre><code>## [1] 2370112906</code></pre>
+<pre class="r"><code>pasture_all &lt;- pasture_hist %&gt;%
   group_by(BIOME_NAME,ISO_A3, b1_1) %&gt;% drop_na(BIOME_NAME) %&gt;% drop_na(ISO_A3) %&gt;%
   summarise(b1_2 = sum(b1_2)) %&gt;%
-  mutate(b1_2 = as.numeric(b1_2),
+  mutate(b1_1 = b1_1-1,
+         b1_2 = as.numeric(b1_2),
          biomass = b1_1*b1_2*.09,
          BIOME = as.numeric(BIOME_NAME))
 
@@ -479,7 +486,7 @@ crops_potential &lt;- crops_potential %&gt;%
   mutate(CP = &quot;crop&quot;)
 
 sum(na.omit(crops_potential$carbon_potential))/10^9</code></pre>
-<pre><code>## [1] 47.79297</code></pre>
+<pre><code>## [1] 48.06201</code></pre>
 <pre class="r"><code>for (i in 1:length(listp)) {
   listp[[i]]$b1_1&lt;-as.numeric(listp[[i]]$b1_1)
   z &lt;- subset(listp[[i]], b1_1 &gt; 10 )
@@ -497,7 +504,7 @@ pastures_potential &lt;- pastures_potential %&gt;%
             potential_value = mean(p50)) %&gt;%
   mutate(CP = &quot;pasture&quot;)
 sum(na.omit(pastures_potential$carbon_potential))/10^9</code></pre>
-<pre><code>## [1] 44.81358</code></pre>
+<pre><code>## [1] 44.80388</code></pre>
 <pre class="r"><code>potential&lt;- rbind(pastures_potential, crops_potential)</code></pre>
 <pre class="r"><code>write.csv(potential, &quot;../output/potential.csv&quot;)</code></pre>
 <pre class="r"><code>poten&lt;-read_csv(&quot;../output/potential.csv&quot;)%&gt;%
@@ -514,7 +521,7 @@ sum(na.omit(pastures_potential$carbon_potential))/10^9</code></pre>
 ##   CP = col_character()
 ## )</code></pre>
 <pre class="r"><code>sum(poten$carbon)</code></pre>
-<pre><code>## [1] 92606.55</code></pre>
+<pre><code>## [1] 92865.89</code></pre>
 
 
 

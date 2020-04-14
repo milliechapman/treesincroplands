@@ -12,14 +12,11 @@ library(gridExtra)
 ```
 
 ```{r}
-IUCN_agroforestry  <- read_csv("../data/INDCCCAFS.csv") %>%
-  mutate(value = ifelse(mitigation == 1 & both == 0, "mitigation", 
-                        ifelse(adaptation == 1 & both == 0, "adaptation", 
-                               ifelse(adaptation == 0 & mitigation == 0, "none", "both"))))
+IUCN_agroforestry  <- read.csv("../data/IUCN_ndc_agroforestry.csv") %>% select(Agroforestry, ISO_A3)
 
 summary_country <-read_csv("../output/summary_country.csv") %>%
   left_join(IUCN_agroforestry) %>%
-  rename(IUCN = value)
+  rename(IUCN = Agroforestry)
 
 summary_country <- summary_country %>%
   mutate(iso_a3 = ISO_A3,
@@ -32,7 +29,12 @@ world <- ne_countries(scale = "small", returnclass = "sf") %>%
 quantile_crop <- quantile(world$density_crop, na.rm = TRUE)
 ```
 
-```{r "fig1", fig.height=11, fig.width=10, dpi = 300}
+```{r}
+
+```
+
+
+```{r "figure1", fig.height=11, fig.width=10, dpi = 300}
 crop <- ggplot(data = world) +
   geom_sf(aes(fill = density_crop))  +
   scale_fill_gradient(low = "lightyellow",
@@ -66,44 +68,49 @@ grid.arrange(crop, pasture, ncol = 1)
 
 
 ```{r fig.height=10, fig.width=10}
-IUCN <- read.csv("../output/summary_all.csv") %>%
-  select(value, area_pasture, area_crop, carbon_pasture, carbon_crop) %>%
+IUCN <- read_csv("../output/summary_all.csv") %>%
+  left_join(IUCN_agroforestry, by = c("ISO_A3")) %>%
+  select(Agroforestry, area_pasture, area_crop, biomass_pasture, biomass_crop) %>%
   #mutate(mitigation = as.factor(mitigation)) %>%
   #mutate_all(funs(ifelse(is.na(.), 0, .))) %>%
-  group_by(value) %>%
-  summarise(pasture = sum(carbon_pasture, na.rm = TRUE)/1000,
-            crop = sum(carbon_crop, na.rm = TRUE)/1000) %>%
-  gather(-value, key = "CP", value = "carbon_standing")
+  group_by(Agroforestry) %>%
+  summarise(pasture = sum(biomass_pasture, na.rm = TRUE)/1000,
+            crop = sum(biomass_crop, na.rm = TRUE)/1000) %>%
+  gather(-Agroforestry, key = "CP", value = "carbon_standing")
 
-
+IUCN_agroforestry %>% group_by(Agroforestry) %>% count()
 
 IUCN_potential <- read.csv("../output/potential.csv") %>% left_join(IUCN_agroforestry, by = c("ISO_A3")) %>%
-  select(carbon_potential, CP, value) %>%
+  select(carbon_potential, CP, Agroforestry) %>%
   #mutate_all(funs(ifelse(is.na(.), 0, .))) %>%
   #select(mitigation.y, carbon_potential, CP) %>%
   #mutate(mitigation = as.factor(mitigation.y)) %>%
   #mutate_all(funs(ifelse(is.na(.), 0, mitigation))) %>%
-  group_by(value, CP) %>%
+  group_by(Agroforestry, CP) %>%
   summarise(carbon_potential = sum(carbon_potential, na.rm = TRUE)/10^9/10) %>%
-  left_join(IUCN, by = c("value","CP"))
+  left_join(IUCN, by = c("Agroforestry","CP"))
+
+sum(IUCN_potential$carbon_standing)/10^6
+
 ```
 
 
 ```{r}
+IUCN_pot_all <- IUCN_potential
 IUCN_potential<- IUCN_potential %>% remove_missing() %>%
-  rename(INDC = value)
+  rename(NDC = Agroforestry)
 ```
 
 
 
 ```{r}
 standing <- read.csv("../output/summary_all.csv") %>%
-  select(NAME_EN, ISO_A3, carbon_pasture, carbon_crop) %>%
+  select(NAME_EN, ISO_A3, biomass_pasture, biomass_crop) %>%
   #mutate(mitigation = as.factor(mitigation)) %>%
   ##mutate_all(funs(ifelse(is.na(.), 0, .))) %>%
   group_by(ISO_A3) %>%
-  summarise(pasture_loss = sum(carbon_pasture, na.rm = TRUE)*(-1),
-            crop_loss = sum(carbon_crop, na.rm = TRUE)*(-1)) %>%
+  summarise(pasture_loss = sum(biomass_pasture/10^6, na.rm = TRUE)*(-1),
+            crop_loss = sum(biomass_crop/10^6, na.rm = TRUE)*(-1)) %>%
   gather(-ISO_A3, key = "CP", value = "standing") %>%
   #mutate(mitigation = as.factor(mitigation)) %>%
   group_by(ISO_A3, CP) %>%
@@ -136,83 +143,89 @@ fig <- totals %>% left_join(fig_data) %>%
 ```
 
 
-```{r "fig4" , fig.height=5, fig.width=6, dpi = 300}
+```{r "figure4" , fig.height=4, fig.width=5.5, dpi = 300}
 cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 
 fig %>%
   group_by(CP) %>%
   summarize(carbon = sum(carbon))
 
+levels(fig$NAME_EN) <- c(levels(fig$NAME_EN), "China")
+fig$NAME_EN[fig$NAME_EN == "People's Republic of China"] <- 'China'
+
+fig$CP <- factor(fig$CP, levels = c("crop", "pasture", "crop_loss", "pasture_loss"))
+
 fig %>% ggplot(aes(reorder(NAME_EN, total), carbon)) +
-  geom_col(aes(fill = CP), width = 0.75) + coord_flip() +   labs(x = "",y = "Carbon Potential (PgC)", sep = "")+
-  theme(legend.title = element_blank()) +
-  scale_fill_manual(values = c("#0066CC","#FFCC66", "#003366", "#FF9900")) +
-  theme(axis.text.x = element_text(angle = 0, hjust = 1)) +theme(legend.position = "none") +
-  theme_bw() + ylim(-0.5,1.2) +
-  geom_hline(yintercept=0, size = .5)
+  geom_col(aes(fill = CP), width = 0.75) + coord_flip() +   labs(x = "",y = "Carbon Potential (PgC)", sep = "")+ theme_bw() +
+  theme(legend.title = element_blank()) + theme() + theme(legend.position = c(0.75, 0.2)) +
+  scale_fill_manual(labels = c("Potential gain crop", "Potential gain pasture", "Potential loss crop", "Potential loss pasture"), values = c("#0066CC", "#003366", "#FFCC66", "#FF9900")) +
+  theme(axis.text.x = element_text(angle = 0, hjust = 1)) +
+  ylim(-0.5,1.2) +
+  geom_hline(yintercept=0, size = .5)  +
+  theme(legend.background = element_rect(colour = 'black', fill = 'white', linetype='solid'))
+
 
 ```
 
-```{r "fig5", fig.width= 4, fig.height=6,dpi=300}
+```{r "figure5", fig.width= 4, fig.height=6,dpi=300}
+
+IUCN_potential$NDC <- ifelse(IUCN_potential$NDC == 0, "Not included \n (n = 153)", "Included \n (n = 38)")
+IUCN_potential1 <- IUCN_potential
+IUCN_potential$CP <- factor(IUCN_potential$CP, levels = c("crop", "pasture", "crop_loss", "pasture_loss"))
+
+IUCN_potential<- IUCN_potential %>%
+  mutate(carbon_standing = (-1)*carbon_standing/10^6) %>%
+  gather(-NDC,  -CP,  key = "key", value = "value") %>%
+  mutate(CP = paste(CP, key, sep = "_")) 
+
+IUCN_potential$CP <- factor(IUCN_potential$CP, levels = c("crop_carbon_potential", "pasture_carbon_potential", "crop_carbon_standing", "pasture_carbon_standing"))
+
 IUCN_potential %>%
-  mutate(carbon_standing = (-1)*carbon_standing) %>%
-  gather(-INDC,  -CP,  key = "key", value = "value") %>%
-  mutate(CP = paste(CP, key, sep = "_")) %>%
-  ggplot(aes(reorder(INDC, -value), value)) + geom_col(aes(fill = CP), width=.75) + ylim(-7,9) +
-  labs(x = "Agroforestry specification in INDC",y = "Carbon Potential (PgC)", sep = "")+
+  ggplot(aes(reorder(NDC, -value), value)) + geom_col(aes(fill = CP), width=.75) + ylim(-8,8) +
+  labs(x = "Inclusion of Agroforestry as a mitigation \n or adaptation technique in NDC",y = "Carbon Potential (PgC)", sep = "")+
+  theme_bw() + theme(legend.position = c(0.72, 0.15)) +
   theme(legend.title = element_blank()) +
-  scale_fill_manual(values = c("#0066CC","#FFCC66", "#003366", "#FF9900")) +
-  theme_bw() +
-  theme(axis.text.x = element_text(angle = 0, hjust = 0.5)) +   
-  theme(legend.position = "none") + geom_hline(yintercept=0,size = 0.5)
+  scale_fill_manual(labels = c("Potential gain crop", "Potential gain pasture", "Potential loss crop", "Potential loss pasture"), values = c("#0066CC", "#003366", "#FFCC66", "#FF9900")) +
+  theme(axis.text.x = element_text(angle = 0, hjust = 0.5)) + geom_hline(yintercept=0,size = 0.5) +
+  theme(legend.background = element_rect(colour = 'black', fill = 'white', linetype='solid'))
 
-cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
-
-
-IUCN_potential %>%
-  mutate(carbon_standing = (-1)*carbon_standing) %>%
-  gather(-INDC,  -CP,  key = "key", value = "value") %>%
-  mutate(CP = paste(CP, key, sep = "_"))  %>%
-  group_by(key) %>%
-  summarise(carbon = sum(value))
-
-6.7/(9.09)
-
-4.03/(7.5)
-```
-
-```{r "fig5b", fig.width= 8, fig.height=6, dpi=300}
-ggplot(data = world) +
-  geom_sf(aes(fill = IUCN))  +
-  scale_fill_manual(values = c("#F0E442", "#0072B2", "#D55E00", "#999999")) +
-  coord_sf(crs = "+proj=robin +lon_0=0w") + theme_minimal() + 
-  theme(legend.position = c(0.14, 0.5),
-        legend.title = element_blank(),
-        legend.background = element_rect(fill="white",  size=0, linetype="dotted")) +
-  #theme(legend.key.width = unit(2, "cm")) +
-  theme(panel.grid.major = element_line(color = gray(.4), size = 0.3))
 
 ```
 
-```{r "fig2", fig.width= 4, fig.height=4, dpi=300}
+```{r}
+IUCN_potential1 %>%
+  group_by(NDC) %>%
+  summarise(potential = sum(carbon_potential),
+            standing = sum(carbon_standing)/10^6)
+
+3.7/6.9
+7.9/9.4
+153+38
+```
+
+
+
+
+```{r "figure2", fig.width= 4, fig.height=4, dpi=300}
 ##"#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 ## figure 2: Econ chart
 read.csv("../output/summary_all.csv") %>%
-  group_by(NAME_EN, ECONOMY) %>% summarise(biomass = 1) %>% remove_missing() %>%
-  group_by(ECONOMY) %>%
+  group_by(NAME_EN, INCOME_GRP) %>% summarise(biomass = 1) %>% remove_missing() %>%
+  group_by(INCOME_GRP) %>%
   tally()
          
          
-econ <- read.csv("../output/summary_all.csv") %>%
-  select(NAME_EN, BIOME_NAME, ECONOMY, density_pasture, density_crop) %>% drop_na() %>%
+econ <- read_csv("../output/summary_all.csv") %>%
+  select(NAME_EN, BIOME_NAME, INCOME_GRP, density_pasture, density_crop) %>% drop_na() %>%
   rename(pasture = density_pasture,
          crop = density_crop) %>%
-  mutate(ECONOMY = factor(ifelse(ECONOMY == "High income", "High income \n (n=67)", 
-                                 ifelse(ECONOMY == "Low income", "Low income \n (n=34)",
-                                        ifelse(ECONOMY =="Lower middle income", 
+  mutate(ECONOMY = factor(ifelse(INCOME_GRP == "1. High income: OECD" , "High income \n (n=67)",
+                                 ifelse(INCOME_GRP == "2. High income: nonOECD", "High income \n (n=67)",
+                                    ifelse(INCOME_GRP == "5. Low income", "Low income \n (n=34)",
+                                        ifelse(INCOME_GRP =="4. Lower middle income", 
                                                "Lower middle \n income \n (n =43)",
                                                "Upper middle \n income \n (n=48)"
-                                               ))))) %>%
+                                               )))))) %>%
   gather(CP,value,pasture:crop) %>%
   group_by(CP, ECONOMY) %>% 
   summarise(mean_density = mean(value),  # calculates the mean of each group
@@ -241,11 +254,11 @@ ggplot(econ, aes(x=reorder(ECONOMY, -mean_density),
 ```
 
 
-```{r "fig3", fig.width = 3.8, fig.height = 5, dpi=300}
-potential<- IUCN_potential %>%
+```{r "figure3", fig.width = 3.8, fig.height = 5, dpi=300}
+potential<- IUCN_potential1 %>%
   group_by(CP) %>% 
   summarise(`100 % ` = sum(carbon_potential)*10,
-            `-100 % ` = sum(carbon_standing)*(-1)) %>%
+            `-100 % ` = sum(carbon_standing)*(-1)/10^6) %>%
   mutate(`10 % ` = `100 % `*0.1,
          `5 % ` = `100 % `*0.05,
          `2.5 % ` = `100 % `*0.025,
@@ -262,14 +275,46 @@ potential<- IUCN_potential %>%
                                ifelse(value >0 & CP == "crop", "trees in crop gain", "trees in pasture gain"))))%>%
   mutate(color = as.factor(color))
 
+potential$color <- factor(potential$color, levels = c("trees in crop gain", "trees in pasture gain", "trees in crop loss", "trees in pasture loss"))
+
 potential %>% 
-  ggplot(aes(reorder(Adoption, value), value))+
-  geom_col(aes(fill = color))+theme_bw() +
+  ggplot(aes(reorder(Adoption, value), value)) +
+  geom_col(aes(fill = color))+theme_bw() + scale_fill_manual(labels = c("Potential gain crop", "Potential gain pasture", "Potential loss crop", "Potential loss pasture"), values = c("#0066CC", "#003366", "#FFCC66", "#FF9900")) +
   labs(x = "Adoption Percentage",y = "Carbon Sequestration Potential (PgC)", sep = "")+
   theme(legend.title = element_blank()) + ylim(-10, 10) +
-  scale_fill_manual(values = c("#0066CC","#FFCC66", "#003366", "#FF9900")) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +  
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  theme(legend.position = c(0.7, 0.2)) +
+  theme(legend.background = element_rect(colour = 'black', fill = 'white'))
+
+
+```
+
+```{r "abstractb2", fig.width= 3, fig.height=3, dpi = 300}
+abstract<- read.csv("../data/abstract.csv")
+
+abstract %>% filter(CP == "crop") %>%
+  #gather(-CP, key = "key", value = "value") %>%
+  ggplot(aes(SP, Value)) +
+  geom_bar(aes(fill = SP), stat = "identity") +
+  theme_bw() +
+  labs(x = "",y = "Carbon (PgC)", sep = "")+
+  theme(legend.title = element_blank()) + ylim(0, 5) +
+  scale_fill_manual(values = c("#006400","#B8CAB2")) +
+ # theme(axis.text.x = element_text(angle = 0, hjust = 1)) +  
   theme(legend.position = "none")
 
+```
+
+```{r "abstractc2", fig.width= 3, fig.height=3, dpi = 300}
+abstract %>% filter(CP == "pasture") %>%
+  #gather(-CP, key = "key", value = "value") %>%
+  ggplot(aes(SP, Value)) +
+  geom_bar(aes(fill = SP), stat = "identity") +
+  theme_bw() +
+  labs(x = "",y = "Carbon (PgC)", sep = "")+
+  theme(legend.title = element_blank()) + ylim(0, 5) +
+  scale_fill_manual(values = c("#006400","#B8CAB2")) +
+ # theme(axis.text.x = element_text(angle = 0, hjust = 1)) +  
+  theme(legend.position = "none")
 ```
 

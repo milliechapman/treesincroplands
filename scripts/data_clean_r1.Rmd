@@ -1,0 +1,245 @@
+---
+title: "data_clean"
+author: "Millie Chapman"
+date: "12/21/2019"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(splitstackshape)
+library(stringr)
+rm(list = ls())
+```
+
+```{r}
+##variables
+#vars<-c("NAME_EN", "b1", "BIOME", "ECONOMY", "POP_EST", "INCOME_GRP", "ISO_A3")
+vars<-c("NAME_EN", "min", "BIOME_NAME", "ECONOMY", "POP_EST", "INCOME_GRP", "ISO_A3")
+vars1<-c("NAME_EN", "b1", "BIOME_NAME", "ECONOMY", "POP_EST", "INCOME_GRP", "ISO_A3")
+biomes<-read_csv("../data/Biome_names.csv")
+
+IUCN_agroforestry  <- read_csv("../data/INDCCCAFS.csv") %>%
+  mutate(value = ifelse(mitigation == 1 & both == 0, "mitigation", 
+                        ifelse(adaptation == 1 & both == 0, "adaptation", 
+                               ifelse(adaptation == 0 & mitigation == 0, "none", "both"))))
+
+
+class<- read.csv("../data/gdp_classification.csv") %>%
+  mutate(ISO_A3 = Country.Code) %>%
+  select(ISO_A3, IncomeGroup) %>%
+  mutate(ECONOMY = IncomeGroup) %>%
+  left_join(IUCN_agroforestry)
+
+```
+
+```{r}
+##load crop
+crop_hist<- read.csv("../data/data_new/crop_hist_25.csv") %>%
+  select(vars) %>% mutate(b1 = min) %>%
+  left_join(class, by = "ISO_A3") %>%
+  drop_na("ISO_A3")
+  
+
+# filter frequency hist
+crop_hist$b1<- str_sub(crop_hist$b1, 2, -2)
+crop_hist$b1<- as.character(crop_hist$b1)
+crop_hist <- cSplit(crop_hist, "b1", sep = ",", direction = "long")
+crop_hist <- cSplit(crop_hist, "b1", sep = "=", direction = "wide")
+
+crop_histL<- crop_hist %>%
+  filter(b1_1<10) 
+
+
+sum(crop_histL$b1_2)*.09/10^6/(sum(crop_hist$b1_2)*.09/10^6)
+```
+
+```{r}
+##load crop
+crop_area_all <- read_csv("../data/data_new/crop_area_all.csv") 
+crop_biomass_all <- read_csv("../data/data_new/crop_biomass_all.csv")
+
+sum(crop_area_all$min)/10^9
+(sum(crop_biomass_all$min)/10^9 - sum(crop_area_all$min)/10^9)/2
+
+crop_area_25 <- read_csv("../data/data_new/crop_area_25.csv") 
+crop_biomass_25 <- read_csv("../data/data_new/crop_biomass_25.csv")
+
+sum(crop_area_25$min)/10^9
+(sum(crop_biomass_25$min)/10^9 - sum(crop_area_25$min)/10^9)/2
+```
+```{r}
+##load pastture
+pasture_area_25 <- read_csv("../data/data_new/pasture_area_25.csv") 
+pasture_biomass_25 <- read_csv("../data/data_new/pasture_biomass_25.csv")
+
+sum(pasture_area_25$min)/10^9
+(sum(pasture_biomass_25$min)/10^9 - sum(pasture_area_25$min)/10^9)/2
+```
+
+```{r}
+crop_hist<- read.csv("../data/data_new/crop_hist_25_2.csv") %>%
+  select(vars) %>% mutate(b1 = min) %>%
+  left_join(class, by = "ISO_A3") %>%
+  drop_na("ISO_A3")
+  
+
+# filter frequency hist
+crop_hist$b1<- str_sub(crop_hist$b1, 2, -2)
+crop_hist$b1<- as.character(crop_hist$b1)
+crop_hist <- cSplit(crop_hist, "b1", sep = ",", direction = "long")
+crop_hist <- cSplit(crop_hist, "b1", sep = "=", direction = "wide")
+
+crop_histL<- crop_hist %>%
+  filter(b1_1<10) 
+
+
+sum(crop_histL$b1_2)*.09/10^6/(sum(crop_hist$b1_2)*.09/10^6)
+```
+
+```{r}
+##load pasture
+pasture_hist<- read_csv("../data/data_new/pasture_hist_25.csv") %>%
+ select(vars)  %>% mutate(b1 = min) %>%
+ left_join(class) %>%
+ drop_na("ISO_A3")
+
+
+#format frequency hist
+pasture_hist$b1<- str_sub(pasture_hist$b1, 2, -2)
+pasture_hist$b1<- as.character(pasture_hist$b1)
+pasture_hist <- cSplit(pasture_hist, "b1", sep = ",", direction = "long")
+pasture_hist <- cSplit(pasture_hist, "b1", sep = "=", direction = "wide")
+
+pasture_histL<- pasture_hist %>%
+  filter(b1_1<10) 
+sum(pasture_histL$b1_2)*.09/10^6/(sum(pasture_hist$b1_2)*.09/10^6)
+```
+
+```{r}
+######## country summary #############
+crop_hist$NAME_EN<- forcats::fct_explicit_na(crop_hist$NAME_EN)
+crop_country <- crop_hist %>% mutate(b1_1 = b1_1 -1) %>%
+  group_by(NAME_EN, ISO_A3, b1_1) %>%
+  summarise(b1_2 = sum(b1_2)) %>%
+  mutate(b1_2 = as.numeric(b1_2),
+         biomass = b1_1*b1_2*.09) %>%
+  group_by(NAME_EN, ISO_A3) %>%
+  summarise(area_crop = sum(b1_2)*.09/10^6,
+            carbon_crop = sum(biomass)/2/10^6,
+            density_crop = carbon_crop/area_crop)
+sum(crop_country$area_crop)
+sum(crop_country$carbon_crop)
+```
+
+
+
+```{r}
+summary_country <- pasture_hist %>% drop_na(BIOME_NAME) %>%
+  group_by(NAME_EN, ISO_A3, b1_1) %>% 
+  summarise(b1_2 = sum(b1_2)) %>%
+  mutate(b1_2 = as.numeric(b1_2)-1,
+         biomass = b1_1*b1_2*.09) %>%
+  group_by(NAME_EN, ISO_A3) %>%
+  summarise(area_pasture = sum(b1_2)*.09/10^6,
+            carbon_pasture = sum(biomass)/2/10^6,
+            density_pasture = carbon_pasture/area_pasture) %>%
+  full_join(crop_country) %>%
+  mutate(total_carbon = carbon_pasture + carbon_crop,
+         total_area = area_pasture + area_crop )
+sum(summary_country$area_pasture, na.rm = TRUE)
+sum(summary_country$carbon_pasture, na.rm = TRUE)
+
+```
+
+```{r}
+###### Biome Summary ############
+crop_biome <- crop_hist %>%
+  group_by(BIOME_NAME, b1_1) %>% drop_na(BIOME_NAME) %>%
+  summarise(b1_2 = sum(b1_2)) %>%
+  mutate(b1_2 = as.numeric(b1_2),
+         biomass = b1_1*b1_2*.09) %>%
+  group_by(BIOME_NAME) %>%
+  summarise(area_crop = sum(b1_2)*.09/10^6,
+            carbon_crop = sum(biomass)/2/10^6,
+            density_crop = carbon_crop/area_crop)
+
+summary_biome <- pasture_hist %>%
+  group_by(BIOME_NAME, b1_1) %>% drop_na(BIOME_NAME) %>%
+  summarise(b1_2 = sum(b1_2)) %>%
+  mutate(b1_2 = as.numeric(b1_2),
+         biomass = b1_1*b1_2*.09) %>%
+  group_by(BIOME_NAME) %>%
+  summarise(area_pasture = sum(b1_2)*.09/10^6,
+            carbon_pasture = sum(biomass)/2/10^6,
+            density_pasture = carbon_pasture/area_pasture) %>%
+  full_join(crop_biome) %>%
+  mutate(total_carbon = carbon_pasture + carbon_crop,
+         total_area = area_pasture + area_crop )
+```
+
+```{r}
+######## Economy Summary ############
+crop_econ <- crop_hist %>%
+  mutate(ECONOMY = INCOME_GRP) %>%
+  group_by(ECONOMY, b1_1) %>%
+  summarise(b1_2 = sum(b1_2)) %>%
+  mutate(b1_2 = as.numeric(b1_2),
+         biomass = b1_1*b1_2*.09) %>%
+  group_by(ECONOMY) %>% drop_na() %>%
+  summarise(area_crop = sum(b1_2)*.09/10^6,
+            carbon_crop = sum(biomass)/2/10^6,
+            density_crop = carbon_crop/area_crop)
+
+summary_economy <- pasture_hist %>% 
+  mutate(ECONOMY = INCOME_GRP) %>%
+  group_by(ECONOMY, b1_1)  %>%
+  summarise(b1_2 = sum(b1_2)) %>%
+  mutate(b1_2 = as.numeric(b1_2),
+         biomass = b1_1*b1_2*.09) %>%
+  group_by(ECONOMY) %>% drop_na() %>%
+  summarise(area_pasture = sum(b1_2)*.09/10^6,
+            carbon_pasture = sum(biomass)/2/10^6,
+            density_pasture = carbon_pasture/area_pasture) %>%
+  full_join(crop_econ) %>%
+  mutate(total_carbon = carbon_pasture + carbon_crop,
+         total_area = area_pasture + area_crop )
+```
+
+```{r}
+########Summary all ###############
+crop_all <- crop_hist %>%
+  group_by(NAME_EN, BIOME_NAME, b1_1) %>% drop_na(BIOME_NAME) %>%
+  summarise(b1_2 = sum(b1_2)) %>%
+  mutate(b1_2 = as.numeric(b1_2),
+         biomass = b1_1*b1_2*.09) %>%
+  group_by(NAME_EN, BIOME_NAME) %>%
+  summarise(area_crop = sum(b1_2)*.09/10^6,
+            carbon_crop = sum(biomass)/2/10^6,
+            density_crop = carbon_crop/area_crop)
+
+summary_all <- pasture_hist %>%
+  group_by(NAME_EN,BIOME_NAME,ISO_A3, b1_1) %>% drop_na(BIOME_NAME, NAME_EN) %>%
+  summarise(b1_2 = sum(b1_2)) %>%
+  mutate(b1_2 = as.numeric(b1_2),
+         biomass = b1_1*b1_2*.09) %>%
+  group_by(NAME_EN, BIOME_NAME, ISO_A3) %>%
+  summarise(area_pasture = sum(b1_2)*.09/10^6,
+            carbon_pasture = sum(biomass)/2/10^6,
+            density_pasture = carbon_pasture/area_pasture) %>%
+  full_join(crop_all) %>%
+  mutate(total_carbon = carbon_pasture + carbon_crop,
+         total_area = area_pasture + area_crop ) %>%
+  full_join(class) %>%
+  mutate(ECONOMY = IncomeGroup)
+
+```
+
+```{r}
+write.csv(summary_biome, "../output/summary_biome.csv")
+write.csv(summary_country, "../output/summary_country.csv")
+write.csv(summary_economy, "../output/summary_economy.csv")
+write.csv(summary_all, "../output/summary_all.csv")
+```
+
