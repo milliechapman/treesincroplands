@@ -65,6 +65,18 @@ pasture <- ggplot(data = world) +
 grid.arrange(crop, pasture, ncol = 1)
 ```
 
+```{r}
+
+potential_c <- read.csv("../output/potential.csv") %>% group_by(ISO_A3, CP) %>% summarize(potential = sum(carbon_potential)) %>%
+  spread(CP, potential, fill = NA, convert = FALSE)
+
+standing_c <- read_csv("../output/summary_country.csv")  %>% left_join(potential_c, by = c("ISO_A3")) %>%
+  rename(potential_crop = crop,
+         potential_pasture = pasture) %>%
+  mutate(total_potential = potential_crop + potential_pasture)
+
+write.csv(standing_c, "../output/summary_potential_standing.csv")
+```
 
 
 ```{r fig.height=10, fig.width=10}
