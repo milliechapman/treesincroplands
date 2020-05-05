@@ -9,14 +9,14 @@ library("rnaturalearthdata")
 library(tidyverse)
 ```
 
-    ## ── Attaching packages ───────────────────────────────────────────────────────────────────────────────────── tidyverse 1.3.0 ──
+    ## ── Attaching packages ─────────────────────────────────────── tidyverse 1.3.0 ──
 
     ## ✓ ggplot2 3.2.1.9000     ✓ purrr   0.3.3     
     ## ✓ tibble  2.1.3          ✓ dplyr   0.8.3     
     ## ✓ tidyr   1.0.0          ✓ stringr 1.4.0     
     ## ✓ readr   1.3.1          ✓ forcats 0.4.0
 
-    ## ── Conflicts ──────────────────────────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
+    ## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
     ## x dplyr::filter() masks stats::filter()
     ## x dplyr::lag()    masks stats::lag()
 
@@ -106,6 +106,41 @@ grid.arrange(crop, pasture, ncol = 1)
 ```
 
 ![](figures_files/figure-gfm/figure1-1.png)<!-- -->
+
+``` r
+potential_c <- read.csv("../output/potential.csv") %>% group_by(ISO_A3, CP) %>% summarize(potential = sum(carbon_potential)) %>%
+  spread(CP, potential, fill = NA, convert = FALSE)
+
+standing_c <- read_csv("../output/summary_country.csv")  %>% left_join(potential_c, by = c("ISO_A3")) %>%
+  rename(potential_crop = crop,
+         potential_pasture = pasture) %>%
+  mutate(total_potential = potential_crop + potential_pasture)
+```
+
+    ## Warning: Missing column names filled in: 'X1' [1]
+
+    ## Parsed with column specification:
+    ## cols(
+    ##   X1 = col_double(),
+    ##   NAME_EN = col_character(),
+    ##   ISO_A3 = col_character(),
+    ##   INCOME_GRP = col_character(),
+    ##   biomass_crop = col_double(),
+    ##   biomass_pasture = col_double(),
+    ##   area_crop = col_double(),
+    ##   area_pasture = col_double(),
+    ##   total_area = col_double(),
+    ##   total_biomass = col_double(),
+    ##   density_crop = col_double(),
+    ##   density_pasture = col_double()
+    ## )
+
+    ## Warning: Column `ISO_A3` joining character vector and factor, coercing into
+    ## character vector
+
+``` r
+write.csv(standing_c, "../output/summary_potential_standing.csv")
+```
 
 ``` r
 IUCN <- read_csv("../output/summary_all.csv") %>%

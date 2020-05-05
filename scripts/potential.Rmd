@@ -62,7 +62,7 @@ pasture_hist <- cSplit(pasture_hist, "b1", sep = "=", direction = "wide")
 
 ```{r}
 crop_all <- crop_hist %>%
-  group_by(BIOME_NAME, ISO_A3, b1_1) %>% drop_na(BIOME_NAME) %>% #drop_na(ISO_A3) %>%
+  group_by(BIOME_NAME, ISO_A3, b1_1) %>% #drop_na(BIOME_NAME) %>% drop_na(ISO_A3) %>%
   summarise(b1_2 = sum(b1_2)) %>%
   mutate(b1_1 = b1_1-1,
          b1_2 = as.numeric(b1_2),
@@ -106,7 +106,7 @@ for (i in 1:length(listc)) {
 crops_potential <- do.call("rbind", listc) 
 
 crops_potential <- crops_potential %>%
-  group_by(BIOME, ISO_A3) %>%
+  group_by(BIOME, ISO_A3) %>% drop_na(ISO_A3) %>%
   summarise(carbon_potential = sum(b50)/2,
             potential_value = mean(p50)) %>%
   mutate(CP = "crop")
@@ -130,12 +130,10 @@ for (i in 1:length(listp)) {
 pastures_potential <- do.call("rbind", listp) 
 
 pastures_potential <- pastures_potential %>%
-  group_by(BIOME, ISO_A3) %>%
+  group_by(BIOME, ISO_A3) %>% 
   summarise(carbon_potential = sum(b50)/2,
             potential_value = mean(p50)) %>%
   mutate(CP = "pasture")
-sum(na.omit(pastures_potential$carbon_potential))/10^9 + sum(na.omit(crops_potential$carbon_potential))/10^9
-
 
 potential<- rbind(pastures_potential, crops_potential)
 ```
@@ -146,11 +144,10 @@ write.csv(potential, "../output/potential.csv")
 
 ```{r}
 poten<-read_csv("../output/potential.csv")%>%
-  group_by(CP) %>% 
+  select(ISO_A3, carbon_potential, CP) %>%  drop_na() %>% group_by(CP) %>%
   summarize(carbon = sum(carbon_potential, na.rm = TRUE)/10^6)
 
 sum(poten$carbon)
-
 ```
 
 

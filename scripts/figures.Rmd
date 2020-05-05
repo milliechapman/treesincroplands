@@ -76,6 +76,8 @@ standing_c <- read_csv("../output/summary_country.csv")  %>% left_join(potential
   mutate(total_potential = potential_crop + potential_pasture)
 
 write.csv(standing_c, "../output/summary_potential_standing.csv")
+
+na.omit(sum(as.numeric(standing_c$total_potential)))
 ```
 
 
@@ -155,7 +157,7 @@ fig <- totals %>% left_join(fig_data) %>%
 ```
 
 
-```{r "figure4" , fig.height=4, fig.width=5.5, dpi = 300}
+```{r "figure4" , fig.height=4, fig.width=5.5, dpi = 600}
 cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 
 fig %>%
@@ -179,7 +181,7 @@ fig %>% ggplot(aes(reorder(NAME_EN, total), carbon)) +
 
 ```
 
-```{r "figure5", fig.width= 4, fig.height=6,dpi=300}
+```{r "figure5", fig.width= 4, fig.height=6,dpi=600}
 
 IUCN_potential$NDC <- ifelse(IUCN_potential$NDC == 0, "Not included \n (n = 153)", "Included \n (n = 38)")
 IUCN_potential1 <- IUCN_potential
